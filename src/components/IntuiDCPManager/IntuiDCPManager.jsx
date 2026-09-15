@@ -1,4 +1,4 @@
-import { useState } from "react"
+ import { useState } from "react"
 import {
   FileText,
   Package,
@@ -84,86 +84,104 @@ function IntuiDCPManager() {
     }
   }
 
-  const handleGenerateVentes =
-    async () => {
-      if (!files.clients) {
-        alert(
-          "Impossible de générer les ventes DCP.\n\n" +
-            "Veuillez d'abord sélectionner l'état des clients Sage."
-        )
-        return
+// ============================================================
+// EXPORT NATIF DCP VIA ELECTRON
+// ============================================================
+
+async function saveDcpExport(type) {
+  if (
+    !window.electronAPI ||
+    typeof window.electronAPI.saveDcpExport !== "function"
+  ) {
+    throw new Error(
+      "L'API native Electron d'enregistrement n'est pas disponible."
+    )
+  }
+
+  return await window.electronAPI.saveDcpExport(type)
+}
+
+const handleGenerateVentes = async () => {
+  if (!files.clients) {
+    alert(
+      "Impossible de générer les ventes DCP.\n\n" +
+        "Veuillez d'abord sélectionner l'état des clients Sage."
+    )
+    return
+  }
+
+  if (!files.ventes) {
+    alert(
+      "Impossible de générer les ventes DCP.\n\n" +
+        "Veuillez d'abord sélectionner l'état des ventes Sage."
+    )
+    return
+  }
+
+  try {
+    const content = await files.ventes.text()
+
+    const response = await fetch(
+      "http://localhost:3001/api/ventes/generate",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content,
+        }),
       }
+    )
 
-      if (!files.ventes) {
-        alert(
-          "Impossible de générer les ventes DCP.\n\n" +
-            "Veuillez d'abord sélectionner l'état des ventes Sage."
-        )
-        return
-      }
+    const result = await response.json()
 
-      try {
-        const content =
-          await files.ventes.text()
-
-        const response =
-          await fetch(
-            "http://localhost:3001/api/ventes/generate",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify({
-                content,
-              }),
-            }
-          )
-
-        const result =
-          await response.json()
-
-        if (
-          !response.ok ||
-          !result.success
-        ) {
-          throw new Error(
-            result.message ||
-              "Erreur pendant la génération de l'état de ventes DCP."
-          )
-        }
-
-        let message =
-          `État de ventes DCP généré avec succès.\n\n` +
-          `Lignes générées : ${result.generated}\n` +
-          `Lignes ignorées : ${result.ignored}\n` +
-          `Clients introuvables : ${result.clientsIntrouvables}`
-
-        if (
-          result.codesClientsIntrouvables &&
-          result.codesClientsIntrouvables.length >
-            0
-        ) {
-          message +=
-            `\n\nCodes clients introuvables :\n` +
-            result.codesClientsIntrouvables.join(
-              ", "
-            )
-        }
-
-        alert(message)
-      } catch (error) {
-        console.error(
-          "Erreur génération ventes DCP :",
-          error
-        )
-
-        alert(
-          `Impossible de générer l' état de ventes DCP.\n\n${error.message}`
-        )
-      }
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.message ||
+          "Erreur pendant la génération de l'état de ventes DCP."
+      )
     }
+
+    let message =
+      `État de ventes DCP généré avec succès.\n\n` +
+      `Lignes générées : ${result.generated}\n` +
+      `Lignes ignorées : ${result.ignored}\n` +
+      `Clients introuvables : ${result.clientsIntrouvables}`
+
+    if (
+      result.codesClientsIntrouvables &&
+      result.codesClientsIntrouvables.length > 0
+    ) {
+      message +=
+        `\n\nCodes clients introuvables :\n` +
+        result.codesClientsIntrouvables.join(", ")
+    }
+
+    alert(message)
+
+    const saved = await saveDcpExport("ventes")
+
+    if (saved?.canceled) {
+      return
+    }
+
+    alert(
+      `État des ventes DCP enregistré avec succès.\n\n` +
+        `Fichier : ${saved.fileName}\n` +
+        `Format : ${saved.format.toUpperCase()}`
+    )
+  } catch (error) {
+    console.error(
+      "Erreur génération ventes DCP :",
+      error
+    )
+
+    alert(
+      `Impossible de générer l' état de ventes DCP.\n\n${error.message}`
+    )
+  }
+}
 
   const handleAnalyseAchats =
     async (file) => {
@@ -409,88 +427,90 @@ function IntuiDCPManager() {
       }
     }
 
-  const handleGenerateStock =
-    async () => {
-      if (!canGenerateStock) {
-        alert(
-          "Veuillez sélectionner les 4 fichiers obligatoires avant de générer l'état de stock DCP."
-        )
-        return
+const handleGenerateStock = async () => {
+  if (!canGenerateStock) {
+    alert(
+      "Veuillez sélectionner les 4 fichiers obligatoires avant de générer l'état de stock DCP."
+    )
+    return
+  }
+
+  try {
+    const achatsContent = await files.achats.text()
+
+    const stockAnterieurContent = files.stockAnterieur
+      ? await files.stockAnterieur.text()
+      : null
+
+    const response = await fetch(
+      "http://localhost:3001/api/stock/generate",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          achatsContent,
+          stockAnterieurContent,
+        }),
       }
+    )
 
-      try {
-        const achatsContent =
-          await files.achats.text()
+    const result = await response.json()
 
-        const stockAnterieurContent =
-          files.stockAnterieur
-            ? await files.stockAnterieur.text()
-            : null
-
-        const response =
-          await fetch(
-            "http://localhost:3001/api/stock/generate",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify({
-                achatsContent,
-                stockAnterieurContent,
-              }),
-            }
-          )
-
-        const result =
-          await response.json()
-
-        if (
-          !response.ok ||
-          !result.success
-        ) {
-          throw new Error(
-            result.message ||
-              "Erreur pendant la génération de l'état de stock DCP."
-          )
-        }
-
-        alert(
-            `État de stock DCP généré avec succès.\n\n` +
-            `Lignes générées : ${result.lignesGenerees}\n` +
-            `Articles : ${result.articles}\n` +
-            `Arrivages : ${result.arrivages}\n` +
-            `Références avec écart : ${result.referencesAvecEcart}\n` +
-            `Quantité importée : ${result.quantiteImportTotale.toLocaleString(
-              "fr-FR"
-            )}\n` +
-            `Valeur DRHT : ${result.valeurTotale.toLocaleString(
-              "fr-FR",
-              {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              }
-            )} DA\n` +
-            `Quantité  vendue : ${result.quantiteVendueTotale.toLocaleString(
-              "fr-FR"
-            )}\n` +
-            `Reste en stock : ${result.resteTotal.toLocaleString(
-              "fr-FR"
-            )}`
-        )
-      } catch (error) {
-        console.error(
-          "Erreur génération stock DCP :",
-          error
-        )
-
-        alert(
-          `Impossible de générer l'état de stock DCP.\n\n${error.message}`
-        )
-      }
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.message ||
+          "Erreur pendant la génération de l'état de stock DCP."
+      )
     }
 
+    alert(
+      `État de stock DCP généré avec succès.\n\n` +
+        `Lignes générées : ${result.lignesGenerees}\n` +
+        `Articles : ${result.articles}\n` +
+        `Arrivages : ${result.arrivages}\n` +
+        `Références avec écart : ${result.referencesAvecEcart}\n` +
+        `Quantité importée : ${result.quantiteImportTotale.toLocaleString(
+          "fr-FR"
+        )}\n` +
+        `Valeur DRHT : ${result.valeurTotale.toLocaleString(
+          "fr-FR",
+          {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }
+        )} DA\n` +
+        `Quantité  vendue : ${result.quantiteVendueTotale.toLocaleString(
+          "fr-FR"
+        )}\n` +
+        `Reste en stock : ${result.resteTotal.toLocaleString(
+          "fr-FR"
+        )}`
+    )
+
+    const saved = await saveDcpExport("stock")
+
+    if (saved?.canceled) {
+      return
+    }
+
+    alert(
+      `État de stock DCP enregistré avec succès.\n\n` +
+        `Fichier : ${saved.fileName}\n` +
+        `Format : ${saved.format.toUpperCase()}`
+    )
+  } catch (error) {
+    console.error(
+      "Erreur génération stock DCP :",
+      error
+    )
+
+    alert(
+      `Impossible de générer l'état de stock DCP.\n\n${error.message}`
+    )
+  }
+}
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-[#f3f6f8]">

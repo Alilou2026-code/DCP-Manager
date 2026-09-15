@@ -1,10 +1,31 @@
+// ============================================================
+// DCP MANAGER — SERVEUR
+// IMPORTS PRINCIPAUX
+// ============================================================
+
 import express from "express"
 import db from "./database.js"
+
+// ============================================================
+// BIBLIOTHÈQUES D'EXPORT
+// ============================================================
+
+import * as XLSX from "xlsx"
+import PDFDocument from "pdfkit"
+
+
+// ============================================================
+// INITIALISATION DU SERVEUR
+// ============================================================
 
 const app = express()
 const PORT = 3001
 
-app.use(express.json({ limit: "50mb" }))
+app.use(
+  express.json({
+    limit: "50mb",
+  })
+)
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*")
@@ -517,6 +538,729 @@ function convertDcpDateToSortableNumber(
     month * 100 +
     day
   )
+}
+// ============================================================
+// PRÉPARATION DES DONNÉES POUR LES EXPORTS DCP
+// ============================================================
+
+
+// ============================================================
+// ÉTAT DES VENTES DCP
+// ============================================================
+
+function getEtatVentesForExport() {
+  return db.prepare(`
+    SELECT
+      RaisonSociale,
+      RCN,
+      Ville,
+      Adresse,
+      Reference,
+      Designation,
+      QtesVendues,
+      MtnVentesHT,
+      FactureN,
+      Observations
+    FROM EtatVentesDCP
+    ORDER BY
+      IdEtatV
+  `).all()
+}
+
+
+// ============================================================
+// ÉTAT DE STOCK DCP
+// ============================================================
+
+function getEtatStockForExport() {
+  return db.prepare(`
+    SELECT
+      Reference,
+      Designation,
+      DateImport,
+      QtesImport,
+      ValeurDRHT,
+      QtesVendues,
+      ResteEnStock,
+      Observations
+    FROM EtatStockDCP
+    ORDER BY
+      Reference COLLATE NOCASE,
+      DateImport,
+      IdEtatS
+  `).all()
+}
+
+
+// ============================================================
+// DONNÉES VENTES POUR EXPORT
+// ============================================================
+
+function buildVentesExportRows(rows) {
+  return rows.map((row) => ({
+    "Raison sociale":
+      row.RaisonSociale || "",
+
+    "RC n°":
+      row.RCN || "",
+
+    "Ville":
+      row.Ville || "",
+
+    "Adresse":
+      row.Adresse || "",
+
+    "Référence":
+      row.Reference || "",
+
+    "Désignation":
+      row.Designation || "",
+
+    "Qtés vendues":
+      Number(row.QtesVendues) || 0,
+
+    "Mtn Ventes HT":
+      Number(row.MtnVentesHT) || 0,
+
+    "Facture N°":
+      row.FactureN || "",
+
+    "Observations":
+      row.Observations || "",
+  }))
+}
+
+
+// ============================================================
+// DONNÉES STOCK POUR EXPORT
+// ============================================================
+
+function buildStockExportRows(rows) {
+  return rows.map((row) => ({
+    "Référence":
+      row.Reference || "",
+
+    "Désignation":
+      row.Designation || "",
+
+    "Date import":
+      row.DateImport || "",
+
+    "Qtés import":
+      Number(row.QtesImport) || 0,
+
+    "Valeur D.R. HT":
+      Number(row.ValeurDRHT) || 0,
+
+    "Qtés vendues":
+      Number(row.QtesVendues) || 0,
+
+    "Reste en stock":
+      Number(row.ResteEnStock) || 0,
+
+    "Observations":
+      row.Observations || "",
+  }))
+}
+
+
+// ============================================================
+// CRÉATION DU FICHIER XLSX
+// ============================================================
+
+function createXlsxBuffer(rows) {
+  const worksheet =
+    XLSX.utils.json_to_sheet(rows)
+
+  // ----------------------------------------------------------
+  // Largeurs de colonnes
+  // ----------------------------------------------------------
+
+  worksheet["!cols"] = [
+    { wch: 28 },
+    { wch: 50 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 20 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 55 },
+  ]
+
+  const workbook =
+    XLSX.utils.book_new()
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    "Etat DCP"
+  )
+
+  // ----------------------------------------------------------
+  // Véritable fichier XLSX
+  // ----------------------------------------------------------
+
+  return XLSX.write(
+    workbook,
+    {
+      type: "buffer",
+      bookType: "xlsx",
+    }
+  )
+}
+
+
+// ============================================================
+// CRÉATION DU FICHIER TXT
+// ============================================================
+
+function createTxtContent(rows) {
+  if (rows.length === 0) {
+    return "\uFEFF"
+  }
+
+  const headers =
+    Object.keys(rows[0])
+
+  const lines = [
+    headers.join("\t"),
+  ]
+
+  for (const row of rows) {
+    lines.push(
+      headers
+        .map((header) =>
+          String(
+            row[header] ?? ""
+          )
+            .replace(/\t/g, " ")
+            .replace(/\r?\n/g, " ")
+        )
+        .join("\t")
+    )
+  }
+
+  return (
+    "\uFEFF" +
+    lines.join("\r\n")
+  )
+}
+
+
+// ============================================================
+// ÉCHAPPEMENT HTML
+// ============================================================
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+}
+
+
+// ============================================================
+// CRÉATION DU FICHIER HTML
+// ============================================================
+
+function createHtmlContent(
+  title,
+  rows
+) {
+  const headers =
+    rows.length
+      ? Object.keys(rows[0])
+      : []
+
+  const headerHtml =
+    headers
+      .map(
+        (header) =>
+          `<th>${escapeHtml(header)}</th>`
+      )
+      .join("")
+
+  const bodyHtml =
+    rows
+      .map(
+        (row) =>
+          `<tr>${headers
+            .map(
+              (header) =>
+                `<td>${escapeHtml(
+                  row[header]
+                )}</td>`
+            )
+            .join("")}</tr>`
+      )
+      .join("")
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>${escapeHtml(title)}</title>
+
+<style>
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 25px;
+  color: #243746;
+}
+
+h1 {
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 11px;
+}
+
+th,
+td {
+  border: 1px solid #b8c5cd;
+  padding: 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #e2ebf0;
+  font-weight: bold;
+}
+
+tr:nth-child(even) {
+  background: #f7f9fa;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>${escapeHtml(title)}</h1>
+
+<table>
+
+<thead>
+<tr>
+${headerHtml}
+</tr>
+</thead>
+
+<tbody>
+${bodyHtml}
+</tbody>
+
+</table>
+
+</body>
+</html>`
+}
+
+
+// ============================================================
+// CRÉATION DU PDF
+// ============================================================
+
+function createPdfBuffer(
+  title,
+  rows,
+  columns
+) {
+  return new Promise(
+    (resolve, reject) => {
+      const doc =
+        new PDFDocument({
+          size: "A4",
+          layout: "landscape",
+          margin: 30,
+        })
+
+      const chunks = []
+
+      doc.on(
+        "data",
+        (chunk) => {
+          chunks.push(chunk)
+        }
+      )
+
+      doc.on(
+        "end",
+        () => {
+          resolve(
+            Buffer.concat(chunks)
+          )
+        }
+      )
+
+      doc.on(
+        "error",
+        reject
+      )
+
+      // --------------------------------------------------------
+      // Titre
+      // --------------------------------------------------------
+
+      doc
+        .fontSize(18)
+        .font("Helvetica-Bold")
+        .text(title)
+
+      doc.moveDown(0.5)
+
+      doc
+        .fontSize(8)
+        .font("Helvetica")
+        .text(
+          `Généré le ${new Date().toLocaleString(
+            "fr-FR"
+          )}`
+        )
+
+      doc.moveDown(1)
+
+      // --------------------------------------------------------
+      // Colonnes PDF
+      // --------------------------------------------------------
+
+      const availableWidth =
+        doc.page.width -
+        doc.page.margins.left -
+        doc.page.margins.right
+
+      const totalWidth =
+        columns.reduce(
+          (total, column) =>
+            total + column.width,
+          0
+        )
+
+      const widths =
+        columns.map(
+          (column) =>
+            (
+              column.width /
+              totalWidth
+            ) *
+            availableWidth
+        )
+
+      const rowHeight = 30
+
+      // --------------------------------------------------------
+      // En-tête
+      // --------------------------------------------------------
+
+      function drawHeader() {
+        let x =
+          doc.page.margins.left
+
+        const y =
+          doc.y
+
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(6.5)
+
+        columns.forEach(
+          (
+            column,
+            index
+          ) => {
+            doc
+              .rect(
+                x,
+                y,
+                widths[index],
+                rowHeight
+              )
+              .stroke()
+
+            doc.text(
+              column.name,
+              x + 3,
+              y + 4,
+              {
+                width:
+                  widths[index] - 6,
+                height:
+                  rowHeight - 6,
+                ellipsis: true,
+              }
+            )
+
+            x +=
+              widths[index]
+          }
+        )
+
+        doc.y =
+          y + rowHeight
+      }
+
+      drawHeader()
+
+      // --------------------------------------------------------
+      // Lignes
+      // --------------------------------------------------------
+
+      doc
+        .font("Helvetica")
+        .fontSize(6)
+
+      for (const row of rows) {
+        if (
+          doc.y >
+          doc.page.height - 65
+        ) {
+          doc.addPage()
+          drawHeader()
+        }
+
+        const y =
+          doc.y
+
+        let x =
+          doc.page.margins.left
+
+        columns.forEach(
+          (
+            column,
+            index
+          ) => {
+            let value =
+              row[column.key]
+
+            if (
+              column.numeric
+            ) {
+              value =
+                Number(value || 0)
+                  .toLocaleString(
+                    "fr-FR",
+                    {
+                      maximumFractionDigits:
+                        2,
+                    }
+                  )
+            }
+
+            value =
+              String(value ?? "")
+
+            doc
+              .rect(
+                x,
+                y,
+                widths[index],
+                rowHeight
+              )
+              .stroke()
+
+            doc.text(
+              value,
+              x + 3,
+              y + 4,
+              {
+                width:
+                  widths[index] - 6,
+                height:
+                  rowHeight - 6,
+                ellipsis: true,
+              }
+            )
+
+            x +=
+              widths[index]
+          }
+        )
+
+        doc.y =
+          y + rowHeight
+      }
+
+      doc.end()
+    }
+  )
+}
+
+
+// ============================================================
+// COLONNES PDF — ÉTAT DES VENTES
+// ============================================================
+
+function getVentesPdfColumns() {
+  return [
+    {
+      name:
+        "Raison sociale",
+      key:
+        "RaisonSociale",
+      width: 12,
+    },
+
+    {
+      name:
+        "RC n°",
+      key:
+        "RCN",
+      width: 7,
+    },
+
+    {
+      name:
+        "Ville",
+      key:
+        "Ville",
+      width: 7,
+    },
+
+    {
+      name:
+        "Adresse",
+      key:
+        "Adresse",
+      width: 12,
+    },
+
+    {
+      name:
+        "Référence",
+      key:
+        "Reference",
+      width: 8,
+    },
+
+    {
+      name:
+        "Désignation",
+      key:
+        "Designation",
+      width: 15,
+    },
+
+    {
+      name:
+        "Qtés vendues",
+      key:
+        "QtesVendues",
+      width: 7,
+      numeric: true,
+    },
+
+    {
+      name:
+        "Mtn Ventes HT",
+      key:
+        "MtnVentesHT",
+      width: 8,
+      numeric: true,
+    },
+
+    {
+      name:
+        "Facture N°",
+      key:
+        "FactureN",
+      width: 7,
+    },
+
+    {
+      name:
+        "Observations",
+      key:
+        "Observations",
+      width: 17,
+    },
+  ]
+}
+
+
+// ============================================================
+// COLONNES PDF — ÉTAT DE STOCK
+// ============================================================
+
+function getStockPdfColumns() {
+  return [
+    {
+      name:
+        "Référence",
+      key:
+        "Reference",
+      width: 9,
+    },
+
+    {
+      name:
+        "Désignation",
+      key:
+        "Designation",
+      width: 22,
+    },
+
+    {
+      name:
+        "Date import",
+      key:
+        "DateImport",
+      width: 8,
+    },
+
+    {
+      name:
+        "Qtés import",
+      key:
+        "QtesImport",
+      width: 8,
+      numeric: true,
+    },
+
+    {
+      name:
+        "Valeur D.R. HT",
+      key:
+        "ValeurDRHT",
+      width: 10,
+      numeric: true,
+    },
+
+    {
+      name:
+        "Qtés vendues",
+      key:
+        "QtesVendues",
+      width: 9,
+      numeric: true,
+    },
+
+    {
+      name:
+        "Reste en stock",
+      key:
+        "ResteEnStock",
+      width: 9,
+      numeric: true,
+    },
+
+    {
+      name:
+        "Observations",
+      key:
+        "Observations",
+      width: 25,
+    },
+  ]
 }
 
 app.post("/api/clients/import", (req, res) => {
@@ -1955,6 +2699,229 @@ app.post("/api/stock/generate", (req, res) => {
     })
   }
 })
+// ============================================================
+// ROUTE D'EXPORT DES ÉTATS DCP
+//
+// Formats disponibles :
+// XLSX / TXT / PDF / HTML
+// ============================================================
+
+app.get(
+  "/api/export/dcp",
+  async (req, res) => {
+    try {
+      const type =
+        String(
+          req.query.type || ""
+        )
+          .trim()
+          .toLowerCase()
+
+      const format =
+        String(
+          req.query.format || ""
+        )
+          .trim()
+          .toLowerCase()
+
+      // --------------------------------------------------------
+      // Vérification du type
+      // --------------------------------------------------------
+
+      if (
+        type !== "ventes" &&
+        type !== "stock"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Type d'état DCP invalide.",
+        })
+      }
+
+      // --------------------------------------------------------
+      // Vérification du format
+      // --------------------------------------------------------
+
+      if (
+        ![
+          "xlsx",
+          "txt",
+          "pdf",
+          "html",
+        ].includes(format)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Format d'export invalide.",
+        })
+      }
+
+      // --------------------------------------------------------
+      // Lecture des données
+      // --------------------------------------------------------
+
+      const rawRows =
+        type === "ventes"
+          ? getEtatVentesForExport()
+          : getEtatStockForExport()
+
+
+      // ========================================================
+      // XLSX
+      // ========================================================
+
+      if (
+        format === "xlsx"
+      ) {
+        const rows =
+          type === "ventes"
+            ? buildVentesExportRows(
+                rawRows
+              )
+            : buildStockExportRows(
+                rawRows
+              )
+
+        const buffer =
+          createXlsxBuffer(
+            rows
+          )
+
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        res.end(buffer)
+
+        return
+      }
+
+
+      // ========================================================
+      // TXT
+      // ========================================================
+
+      if (
+        format === "txt"
+      ) {
+        const rows =
+          type === "ventes"
+            ? buildVentesExportRows(
+                rawRows
+              )
+            : buildStockExportRows(
+                rawRows
+              )
+
+        const content =
+          createTxtContent(
+            rows
+          )
+
+        res.setHeader(
+          "Content-Type",
+          "text/plain; charset=utf-8"
+        )
+
+        res.end(content)
+
+        return
+      }
+
+
+      // ========================================================
+      // HTML
+      // ========================================================
+
+      if (
+        format === "html"
+      ) {
+        const rows =
+          type === "ventes"
+            ? buildVentesExportRows(
+                rawRows
+              )
+            : buildStockExportRows(
+                rawRows
+              )
+
+        const title =
+          type === "ventes"
+            ? "État des ventes DCP"
+            : "État de stock DCP"
+
+        const content =
+          createHtmlContent(
+            title,
+            rows
+          )
+
+        res.setHeader(
+          "Content-Type",
+          "text/html; charset=utf-8"
+        )
+
+        res.end(content)
+
+        return
+      }
+
+
+      // ========================================================
+      // PDF
+      // ========================================================
+
+      if (
+        format === "pdf"
+      ) {
+        const title =
+          type === "ventes"
+            ? "État des ventes DCP"
+            : "État de stock DCP"
+
+        const columns =
+          type === "ventes"
+            ? getVentesPdfColumns()
+            : getStockPdfColumns()
+
+        const buffer =
+          await createPdfBuffer(
+            title,
+            rawRows,
+            columns
+          )
+
+        res.setHeader(
+          "Content-Type",
+          "application/pdf"
+        )
+
+        res.end(buffer)
+
+        return
+      }
+    } catch (error) {
+      // --------------------------------------------------------
+      // Remonter la vraie erreur à Electron
+      // --------------------------------------------------------
+
+      console.error(
+        "Erreur export DCP :",
+        error
+      )
+
+      res.status(500).json({
+        success: false,
+        message:
+          error.message ||
+          "Erreur inconnue pendant l'export DCP.",
+      })
+    }
+  }
+)
 
 app.listen(PORT, () => {
   console.log(`Serveur DCP Manager démarré sur http://localhost:${PORT}`)
