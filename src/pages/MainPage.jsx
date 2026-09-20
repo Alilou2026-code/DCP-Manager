@@ -7,11 +7,13 @@ import MainTabs from "@/components/MainTabs"
 import StatusBar from "@/components/StatusBar"
 
 function MainPage() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [activeTab, setActiveTab] = useState("intui")
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  
+  // On met "accueil" par défaut pour que l'app s'ouvre directement sur la page d'accueil
+  const [activeTab, setActiveTab] = useState("accueil")
 
   return (
-    <div className="flex h-screen min-h-0 flex-col overflow-hidden bg-[#eef0f2] text-[#30373b]">
+    <div className="flex h-screen min-h-0 flex-col overflow-hidden bg-white text-[#30373b]">
 
       {/* Barre de menus */}
       <MenuBar />
@@ -24,20 +26,19 @@ function MainPage() {
 
         {/* Volet gauche */}
         <Sidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          isCollapsed={isCollapsed}
+          toggleCollapse={() => setIsCollapsed(!isCollapsed)}
           activeTab={activeTab}
-          onSelect={setActiveTab}
+          setActiveTab={setActiveTab}
         />
 
         {/* Zone centrale */}
         <main className="flex min-w-0 flex-1 flex-col">
-
           <MainTabs
             activeTab={activeTab}
             onChange={setActiveTab}
+            onNavigate={setActiveTab}
           />
-
         </main>
 
       </div>

@@ -1,88 +1,56 @@
-
 import IntuiDCPManager from "@/components/IntuiDCPManager/IntuiDCPManager"
+import Dashboard from "@/components/Dashboard/Dashboard"
+import ActivityPanel from "@/components/Dashboard/ActivityPanel"
 import {
+  Home,
   FileText,
   BarChart3,
 } from "lucide-react"
+
+function ActivityContent({ onNavigate }) {
+  return <ActivityPanel onNavigate={onNavigate} />
+}
 
 function IntuiDCPContent() {
   return <IntuiDCPManager />
 }
 
 function DashboardContent() {
-  return (
-    <section className="flex h-full flex-col bg-[#f3f6f8]">
-
-      <div className="border-b border-[#c8d3da] bg-white px-6 py-4">
-        <h1 className="text-[18px] font-semibold text-[#294f6b]">
-          Tableau de bord
-        </h1>
-
-        <p className="mt-1 text-[12px] text-[#71818b]">
-          Vue synthétique de l'activité DCP
-        </p>
-      </div>
-
-      <div className="flex flex-1 items-center justify-center p-8">
-        <div
-          className="
-            w-full max-w-[900px]
-            border border-[#c7d2d9]
-            bg-white
-            shadow-[0_1px_4px_rgba(39,65,80,0.10)]
-          "
-        >
-          <div
-            className="
-              flex h-10 items-center
-              border-b border-[#c7d2d9]
-              bg-[#e2ebf0]
-              px-4
-            "
-          >
-            <BarChart3 className="mr-2 h-4 w-4 text-[#3e6d89]" />
-
-            <span className="text-[12px] font-semibold text-[#38596b]">
-              Tableau de bord
-            </span>
-          </div>
-
-          <div className="p-6">
-            <p className="text-[13px] text-[#5e707c]">
-              Les indicateurs et graphiques seront intégrés ici.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
+  return <Dashboard />
 }
 
 function MainTabs({
   activeTab,
   onChange,
+  onNavigate,
 }) {
   const tabs = [
+    {
+      id: "accueil",
+      label: "Accueil",
+      icon: Home,
+    },
     {
       id: "intui",
       label: "IntuiDCP Manager",
       icon: FileText,
     },
     {
-      id: "dashboard",
+      id: "tableau",
       label: "Tableau de bord",
       icon: BarChart3,
     },
   ]
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
 
+      {/* Barre des onglets */}
       <div
         className="
           flex h-10 shrink-0 items-end
-          border-b border-[#aebdc7]
-          bg-[#dce5ea]
+          border-b border-slate-200
+          bg-white
           px-2
         "
       >
@@ -98,28 +66,29 @@ function MainTabs({
               className={`
                 flex h-9 items-center gap-2
                 border-x border-t px-5
-                text-[12px]
-                transition-colors
+                text-[12px] font-medium
+                transition-colors cursor-pointer rounded-t-lg
                 ${
                   active
                     ? `
                       relative -mb-px
-                      border-[#aebdc7]
-                      bg-[#f3f6f8]
+                      border-slate-200
+                      bg-white
                       font-semibold
-                      text-[#245c80]
+                      text-blue-600
+                      shadow-xs
                     `
                     : `
                       border-transparent
-                      bg-transparent
-                      text-[#60727e]
-                      hover:bg-[#cedce4]
-                      hover:text-[#285b79]
+                      bg-slate-50/50
+                      text-slate-500
+                      hover:bg-slate-100
+                      hover:text-slate-800
                     `
                 }
               `}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className={`h-4 w-4 ${active ? "text-blue-600" : "text-slate-400"}`} />
 
               <span>{tab.label}</span>
             </button>
@@ -127,12 +96,17 @@ function MainTabs({
         })}
       </div>
 
-      <div className="min-h-0 flex-1">
+      {/* Contenu de la page active */}
+      <div className="min-h-0 flex-1 bg-white">
+        {activeTab === "accueil" && (
+          <ActivityContent onNavigate={onNavigate} />
+        )}
+
         {activeTab === "intui" && (
           <IntuiDCPContent />
         )}
 
-        {activeTab === "dashboard" && (
+        {(activeTab === "dashboard" || activeTab === "tableau") && (
           <DashboardContent />
         )}
       </div>

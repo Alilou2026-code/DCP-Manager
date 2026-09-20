@@ -13,6 +13,23 @@ import db from "./database.js"
 import * as XLSX from "xlsx"
 import PDFDocument from "pdfkit"
 
+// ============================================================
+// STOCKAGE EN MÉMOIRE DES STATS POUR LE DASHBOARD
+// ============================================================
+let globalDashboardStats = {
+  valeurConsommation: 0,
+  valeurVentes: 0,
+  valeurAchats: 0,
+  valeurStock: 0,
+  volumeStock: 0,
+  totalClients: 0,
+  referencesAvecEcart: 0,
+  achatsLignes: 0,
+  achatsQte: 0,
+  ventesLignes: 0,
+  ventesQte: 0,
+  inventaireLignes: 0
+};
 
 // ============================================================
 // INITIALISATION DU SERVEUR
@@ -227,7 +244,7 @@ function parseVenteLine(line) {
   const qtesVendues = parseNumber(columns[3])
   const prixUnitaireHT = parseNumber(columns[4])
   const factureN = columns[5]?.trim() || ""
-  const mtnVentesHT = parseNumber(columns[6])
+  const mtnVentesHT = qtesVendues * prixUnitaireHT
 
   if (!codeClient || !reference) {
     return null
@@ -1326,31 +1343,89 @@ app.post("/api/ventes/generate", (req, res) => {
 
       clearEtatVentes.run()
 
-      for (const line of venteLines) {
-        const vente = parseVenteLine(line)
-        if (!vente) { ignored++; continue }
+const ventesValides = []
 
-        const client = findClient.get(vente.codeClient)
-        if (!client) {
-          clientsIntrouvables++
-          codesClientsIntrouvables.add(vente.codeClient)
-          continue
-        }
+for (const line of venteLines) {
+  const vente =
+    parseVenteLine(line)
 
-        insertVente.run({
-          raisonSociale: client.RaisonSociale,
-          rcn: client.RCN,
-          ville: client.Ville,
-          adresse: client.Adresse,
-          reference: vente.reference,
-          designation: vente.designation,
-          qtesVendues: vente.qtesVendues,
-          mtnVentesHT: vente.mtnVentesHT,
-          factureN: vente.factureN,
-          observations: "",
-        })
-        generated++
-      }
+  if (!vente) {
+    ignored++
+    continue
+  }
+
+  const client =
+    findClient.get(
+      vente.codeClient
+    )
+
+  if (!client) {
+    clientsIntrouvables++
+
+    codesClientsIntrouvables.add(
+      vente.codeClient
+    )
+
+    continue
+  }
+
+  ventesValides.push({
+    vente,
+    client,
+  })
+}
+
+ventesValides.sort((a, b) => {
+  const factureA = Number(a.vente.factureN)
+  const factureB = Number(b.vente.factureN)
+
+  const aValide =
+    Number.isFinite(factureA)
+
+  const bValide =
+    Number.isFinite(factureB)
+
+  if (!aValide && !bValide) {
+    return 0
+  }
+
+  if (!aValide) {
+    return 1
+  }
+
+  if (!bValide) {
+    return -1
+  }
+
+  return factureA - factureB
+})
+
+for (const { vente, client } of ventesValides) {
+  insertVente.run({
+    raisonSociale:
+      client.RaisonSociale,
+    rcn:
+      client.RCN,
+    ville:
+      client.Ville,
+    adresse:
+      client.Adresse,
+    reference:
+      vente.reference,
+    designation:
+      vente.designation,
+    qtesVendues:
+      vente.qtesVendues,
+    mtnVentesHT:
+      vente.mtnVentesHT,
+    factureN:
+      vente.factureN,
+    observations:
+      "",
+  })
+
+  generated++
+}
 
       return {
         generated,
@@ -1807,6 +1882,24 @@ app.post("/api/stock/generate", (req, res) => {
       }
     }
 
+    // ENRICHISSEMENT FINANCIER AUTONOME (Conserve 100% des lignes pour l'état DCP)
+    for (const [refKey, rows] of previousStockByReference.entries()) {
+      for (const row of rows) {
+        let coutUnitaireRevient = 0;
+        let valeurResteInitialReel = 0;
+
+        // On ne calcule la règle de trois financière QUE si le lot est vivant
+        if (Number(row.resteEnStock) > 0 && Number(row.qtesImport) > 0) {
+          coutUnitaireRevient = Number(row.valeurDRHT) / Number(row.qtesImport);
+          valeurResteInitialReel = coutUnitaireRevient * Number(row.resteEnStock);
+        }
+
+        // On greffe les propriétés financières sans jamais supprimer la ligne
+        row.coutUnitaireRevient = coutUnitaireRevient;
+        row.valeurResteInitialReel = valeurResteInitialReel;
+      }
+    }
+
     // ----------------------------------------------------------
     // 5. SI AUCUN FICHIER ANTÉRIEUR N'EST FOURNI
     //
@@ -2025,6 +2118,9 @@ app.post("/api/stock/generate", (req, res) => {
     // 10. TRAITEMENT DE CHAQUE RÉFÉRENCE
     // ----------------------------------------------------------
 
+    // Variable pour cumuler la consommation réelle ligne par référence
+    let cumulConsommationDashboard = 0;
+
     for (
       const refKey of allReferenceKeys
     ) {
@@ -2160,6 +2256,9 @@ app.post("/api/stock/generate", (req, res) => {
         // Le reste du LOT après le FIFO.
         // ------------------------------------------------------
 
+        // Accumulation de la consommation sur ce lot antérieur re-valorisé
+        cumulConsommationDashboard += ventesSurCetteLigne * (previousRow.coutUnitaireRevient || 0);
+
         const resteApresFIFO =
           resteAvantVente -
           ventesSurCetteLigne
@@ -2269,6 +2368,13 @@ app.post("/api/stock/generate", (req, res) => {
         // ------------------------------------------------------
         // Reste de CE lot.
         // ------------------------------------------------------
+
+        // Accumulation de la consommation sur ce nouvel arrivage d'achat
+        let coutUnitaireAchat = 0;
+        if (Number(arrival.qtesImport) > 0) {
+          coutUnitaireAchat = Number(arrival.valeurImport) / Number(arrival.qtesImport);
+        }
+        cumulConsommationDashboard += ventesSurCetteLigne * coutUnitaireAchat;
 
         const resteNouvelArrivage =
           Math.max(
@@ -2655,6 +2761,40 @@ app.post("/api/stock/generate", (req, res) => {
     // 24. RÉPONSE AU FRONTEND
     // ----------------------------------------------------------
 
+    // AUTOMATISATION DES CALCULS DU DASHBOARD (Fin de la génération de stock)
+    
+    // 1. Calcul de la valeur financière réelle du stock résiduel (Pièces restantes × Coût unitaire d'origine du lot)
+    let valeurFinanciereStockActuel = 0;
+    for (const row of generatedRows) {
+      let coutCalculé = 0;
+      if (Number(row.qtesImport) > 0) {
+        coutCalculé = Number(row.valeurDRHT) / Number(row.qtesImport);
+      }
+      valeurFinanciereStockActuel += row.resteEnStock * coutCalculé;
+    }
+
+    // 2. Extraction automatique des compteurs réels depuis les tables SQLite (Correction CodeClient)
+    const statsVentes = db.prepare(`SELECT COUNT(*) AS Lignes, SUM(QtesVendues) AS Qte FROM EtatVentesDCP`).get() || { Lignes: 0, Qte: 0 };
+    const statsInventaire = db.prepare(`SELECT COUNT(*) AS Lignes FROM Inventaire`).get() || { Lignes: 0 };
+    const totalVentesHT = db.prepare(`SELECT SUM(MtnVentesHT) AS Total FROM EtatVentesDCP`).get()?.Total || 0;
+    
+    // Remplacement sécurisé : Compte le nombre de clients présents dans la table Clients pour le Dashboard
+    const statsClients = db.prepare(`SELECT COUNT(*) AS Total FROM Clients`).get() || { Total: 0 };
+
+    // 3. Sauvegarde dans notre objet global mémoire pour l'affichage immédiat sur l'interface
+    globalDashboardStats.valeurConsommation = cumulConsommationDashboard;
+    globalDashboardStats.valeurVentes = totalVentesHT;
+    globalDashboardStats.valeurAchats = achatsValides.reduce((total, a) => total + (a.valeurImport || 0), 0); // Total achats analytiques de la période
+    globalDashboardStats.valeurStock = valeurFinanciereStockActuel; // Vrai coût de revient du stock de clôture
+    globalDashboardStats.volumeStock = resteTotal; // Volume physique total d'unités
+    globalDashboardStats.totalClients = statsClients.Total || 0;
+    globalDashboardStats.referencesAvecEcart = referencesAvecAnomalie;
+    globalDashboardStats.achatsLignes = achatsValides.length;
+    globalDashboardStats.achatsQte = quantiteImportTotale;
+    globalDashboardStats.ventesLignes = statsVentes.Lignes || 0;
+    globalDashboardStats.ventesQte = statsVentes.Qte || 0;
+    globalDashboardStats.inventaireLignes = statsInventaire.Lignes || 0;
+
     res.json({
       success: true,
 
@@ -2922,6 +3062,19 @@ app.get(
     }
   }
 )
+// ============================================================
+// ROUTE POUR ALIMENTER LE TABLEAU DE BORD DYNAMIQUE
+// ============================================================
+app.get("/api/dashboard/stats", (req, res) => {
+  try {
+    res.json({
+      success: true,
+      ...globalDashboardStats
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Serveur DCP Manager démarré sur http://localhost:${PORT}`)

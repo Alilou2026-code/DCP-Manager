@@ -1,188 +1,113 @@
 import {
-  Menu,
   Home,
-  FileText,
-  BarChart3,
+  FileSpreadsheet,
+  LayoutDashboard,
   Settings,
   HelpCircle,
   ChevronLeft,
-  ChevronRight,
 } from "lucide-react"
 
-function Sidebar({
-  collapsed,
-  onToggle,
-  activeTab,
-  onSelect,
-}) {
-  const items = [
-    {
-      id: "home",
-      label: "Accueil",
-      icon: Home,
-    },
-    {
-      id: "intui",
-      label: "IntuiDCP Manager",
-      icon: FileText,
-    },
-    {
-      id: "dashboard",
-      label: "Tableau de bord",
-      icon: BarChart3,
-    },
+export default function Sidebar({ activeTab, setActiveTab, isCollapsed, toggleCollapse }) {
+  const menuItems = [
+    { id: "accueil", label: "Accueil", icon: Home, color: "text-amber-500 bg-amber-50" },
+    { id: "intui", label: "IntuiDCP Manager", icon: FileSpreadsheet, color: "text-blue-600 bg-blue-50" },
+    { id: "tableau", label: "Tableau de bord", icon: LayoutDashboard, color: "text-indigo-600 bg-indigo-50" },
+  ]
+
+  const bottomItems = [
+    { id: "parametres", label: "Paramètres", icon: Settings, color: "text-slate-600 bg-slate-100" },
+    { id: "aide", label: "Aide", icon: HelpCircle, color: "text-emerald-600 bg-emerald-50" },
   ]
 
   return (
     <aside
-      className={`
-        flex shrink-0 flex-col
-        border-r border-[#b9c8d1]
-        bg-[#dfe8ed]
-        transition-all duration-200
-        ${collapsed ? "w-[54px]" : "w-[220px]"}
-      `}
+      className={`relative flex flex-col bg-white border-r border-slate-200 transition-all duration-300 ease-in-out ${
+        isCollapsed ? "w-20" : "w-64"
+      } shrink-0 select-none shadow-xs`}
     >
-      <div
-        className="
-          flex h-11 shrink-0 items-center
-          border-b border-[#c0cdd5]
-          bg-[#d5e1e8]
-        "
-      >
-        <button
-          type="button"
-          onClick={onToggle}
-          title={collapsed ? "Développer le volet" : "Réduire le volet"}
-          className="
-            flex h-full w-[54px] shrink-0
-            items-center justify-center
-            text-[#42677e]
-            hover:bg-[#c8d8e2]
-          "
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-
-        {!collapsed && (
-          <>
-            <span className="flex-1 text-[12px] font-semibold uppercase tracking-wide text-[#4c6878]">
+      {/* En-tête de la sidebar avec bouton de réduction fonctionnel */}
+      <div className="p-4 border-b border-slate-100 flex items-center justify-between min-h-[65px]">
+        {!isCollapsed && (
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+              <LayoutDashboard className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
               Navigation
             </span>
-
-            <button
-              type="button"
-              onClick={onToggle}
-              title="Réduire le volet"
-              className="
-                mr-2 flex h-7 w-7 items-center
-                justify-center rounded
-                text-[#527386]
-                hover:bg-[#c8d8e2]
-              "
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          </>
-        )}
-
-        {collapsed && (
-          <div className="flex flex-1 justify-center">
-            <ChevronRight className="h-4 w-4 text-[#527386]" />
           </div>
         )}
+        <button
+          onClick={toggleCollapse}
+          type="button"
+          className={`p-1.5 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer ${
+            isCollapsed ? "mx-auto" : "ml-auto"
+          }`}
+          title={isCollapsed ? "Agrandir le volet" : "Réduire le volet"}
+        >
+          <ChevronLeft className={`w-4 h-4 transition-transform duration-300 ${isCollapsed ? "rotate-180" : ""}`} />
+        </button>
       </div>
 
-      <nav className="flex flex-1 flex-col py-2">
-        {items.map((item) => {
+      {/* Menu Principal */}
+      <div className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto overflow-x-hidden">
+        {menuItems.map((item) => {
           const Icon = item.icon
-          const selected =
-            activeTab === item.id ||
-            (item.id === "home" && activeTab === "home")
+          const isActive = activeTab === item.id
 
           return (
             <button
               key={item.id}
-              type="button"
-              onClick={() => onSelect(item.id)}
-              title={collapsed ? item.label : undefined}
-              className={`
-                mx-2 mb-1 flex h-10
-                items-center rounded-sm
-                transition-colors
-                ${collapsed ? "justify-center" : "gap-3 px-3"}
-                ${
-                  selected
-                    ? `
-                      bg-[#ffffff]
-                      text-[#245c80]
-                      shadow-[inset_4px_0_0_#3d7192]
-                    `
-                    : `
-                      text-[#4c626f]
-                      hover:bg-[#cfdee6]
-                      hover:text-[#285b79]
-                    `
-                }
-              `}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                isActive
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              }`}
+              title={isCollapsed ? item.label : undefined}
             >
-              <Icon className="h-[18px] w-[18px] shrink-0" />
-
-              {!collapsed && (
-                <span className="text-[12px] font-medium">
-                  {item.label}
-                </span>
-              )}
+              <div
+                className={`p-1.5 rounded-lg shrink-0 transition-colors ${
+                  isActive ? "bg-white/20 text-white" : item.color
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+              </div>
+              {!isCollapsed && <span className="truncate">{item.label}</span>}
             </button>
           )
         })}
+      </div>
 
-        <div className="my-3 border-t border-[#c1cdd4]" />
+      {/* Menu du bas (Paramètres, Aide) */}
+      <div className="p-3 border-t border-slate-100 space-y-1.5 overflow-x-hidden">
+        {bottomItems.map((item) => {
+          const Icon = item.icon
+          const isActive = activeTab === item.id
 
-        <button
-          type="button"
-          title={collapsed ? "Paramètres" : undefined}
-          className={`
-            mx-2 flex h-10
-            items-center rounded-sm
-            text-[#4c626f]
-            hover:bg-[#cfdee6]
-            hover:text-[#285b79]
-            ${collapsed ? "justify-center" : "gap-3 px-3"}
-          `}
-        >
-          <Settings className="h-[18px] w-[18px] shrink-0" />
-
-          {!collapsed && (
-            <span className="text-[12px] font-medium">
-              Paramètres
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          title={collapsed ? "Aide" : undefined}
-          className={`
-            mx-2 mt-1 flex h-10
-            items-center rounded-sm
-            text-[#4c626f]
-            hover:bg-[#cfdee6]
-            hover:text-[#285b79]
-            ${collapsed ? "justify-center" : "gap-3 px-3"}
-          `}
-        >
-          <HelpCircle className="h-[18px] w-[18px] shrink-0" />
-
-          {!collapsed && (
-            <span className="text-[12px] font-medium">
-              Aide
-            </span>
-          )}
-        </button>
-      </nav>
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                isActive
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              }`}
+              title={isCollapsed ? item.label : undefined}
+            >
+              <div
+                className={`p-1.5 rounded-lg shrink-0 transition-colors ${
+                  isActive ? "bg-white/20 text-white" : item.color
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+              </div>
+              {!isCollapsed && <span className="truncate">{item.label}</span>}
+            </button>
+          )
+        })}
+      </div>
     </aside>
   )
 }
-
-export default Sidebar

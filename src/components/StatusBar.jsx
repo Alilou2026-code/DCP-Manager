@@ -1,42 +1,19 @@
-function StatusBar() {
+export default function StatusBar() {
   return (
-    <footer
-      className="
-        flex h-6 shrink-0 items-center
-        border-t border-[#aebdc7]
-        bg-[#d8e1e6]
-        px-3
-        text-[10px]
-        text-[#5d707c]
-      "
-    >
-      <span>
-        DCP Manager
-      </span>
-
-      <span className="mx-3 text-[#94a5ae]">
-        |
-      </span>
-
-      <span className="font-medium text-[#52725d]">
-        Base de données : OK
-      </span>
-
-      <span className="mx-3 text-[#94a5ae]">
-        |
-      </span>
-
-      <span>
-        Prêt
-      </span>
-
-      <div className="flex-1" />
-
-      <span>
-        Version 1.0
-      </span>
+    <footer className="flex items-center justify-between px-4 py-1.5 bg-white text-slate-500 text-xs border-t border-slate-200 shrink-0 select-none">
+      <div className="flex items-center gap-4">
+        <span className="font-medium text-slate-700">DCP Manager</span>
+        <span className="text-slate-300">|</span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          Base de données : OK
+        </span>
+      </div>
+      <div className="flex items-center gap-4 text-slate-400">
+        <span>Prêt</span>
+        <span className="text-slate-300">|</span>
+        <span className="font-medium text-slate-600">Version 1.0</span>
+      </div>
     </footer>
   )
 }
-
-export default StatusBar

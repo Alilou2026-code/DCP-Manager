@@ -45,24 +45,12 @@ function MenuBar() {
     <header
       className="
         relative z-50 flex h-9 shrink-0 items-center
-        border-b border-[#284c68]
-        bg-[#315f80]
-        text-white
+        border-b border-slate-200
+        bg-white
+        text-slate-700
+        select-none
       "
     >
-      <div
-        className="
-          flex h-full min-w-[180px] items-center
-          border-r border-[#477493]
-          bg-[#284f6b]
-          px-4
-        "
-      >
-        <span className="text-[13px] font-semibold tracking-wide text-white">
-          DCP MANAGER
-        </span>
-      </div>
-
       <nav className="flex h-full items-center">
         {Object.entries(menus).map(([menu, items]) => (
           <div
@@ -74,12 +62,12 @@ function MenuBar() {
               onClick={() => toggleMenu(menu)}
               className={`
                 flex h-full items-center gap-1 border-r
-                border-[#477493] px-4 text-[13px]
-                transition-colors
+                border-slate-200 px-4 text-[13px] font-medium
+                transition-colors cursor-pointer
                 ${
                   openMenu === menu
-                    ? "bg-white text-[#294f6b]"
-                    : "text-white hover:bg-[#3f7295]"
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }
               `}
             >
@@ -97,11 +85,11 @@ function MenuBar() {
               <div
                 className="
                   absolute left-0 top-9 min-w-[245px]
-                  overflow-hidden rounded-b-md
-                  border border-[#b9c7d0]
-                  bg-white py-1
-                  text-[#303f49]
-                  shadow-[0_5px_15px_rgba(0,0,0,0.22)]
+                  overflow-hidden rounded-lg
+                  border border-slate-200
+                  bg-white py-1.5
+                  text-slate-700
+                  shadow-lg
                 "
               >
                 {items.map((item) => {
@@ -115,19 +103,19 @@ function MenuBar() {
                       className="
                         flex w-full items-center gap-3
                         px-3 py-2 text-left text-[13px]
-                        text-[#35444e]
-                        transition-colors
-                        hover:bg-[#e7f0f6]
-                        hover:text-[#245a7d]
+                        text-slate-600
+                        transition-colors cursor-pointer
+                        hover:bg-blue-50
+                        hover:text-blue-600
                       "
                     >
                       <span className="flex w-5 justify-center">
                         {Icon && (
-                          <Icon className="h-4 w-4 text-[#52758b]" />
+                          <Icon className="h-4 w-4 text-slate-400" />
                         )}
                       </span>
 
-                      <span>{item.label}</span>
+                      <span className="font-medium">{item.label}</span>
                     </button>
                   )
                 })}
