@@ -49,6 +49,7 @@ function MenuBar() {
         bg-white
         text-slate-700
         select-none
+        dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300
       "
     >
       <nav className="flex h-full items-center">
@@ -66,8 +67,8 @@ function MenuBar() {
                 transition-colors cursor-pointer
                 ${
                   openMenu === menu
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
                 }
               `}
             >
@@ -90,6 +91,7 @@ function MenuBar() {
                   bg-white py-1.5
                   text-slate-700
                   shadow-lg
+                  dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300
                 "
               >
                 {items.map((item) => {
@@ -107,11 +109,12 @@ function MenuBar() {
                         transition-colors cursor-pointer
                         hover:bg-blue-50
                         hover:text-blue-600
+                        dark:text-neutral-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-400
                       "
                     >
                       <span className="flex w-5 justify-center">
                         {Icon && (
-                          <Icon className="h-4 w-4 text-slate-400" />
+                          <Icon className="h-4 w-4 text-slate-400 dark:text-neutral-500" />
                         )}
                       </span>
 

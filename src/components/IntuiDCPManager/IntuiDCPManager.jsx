@@ -18,6 +18,15 @@ function IntuiDCPManager() {
     achats: null,
     inventaire: null,
     stockAnterieur: null,
+    stockGS: null,
+    stockGC: null,
+  })
+
+  // Fichiers du rapprochement des stocks rejetés lors de l'analyse
+  // (la carte affiche alors le badge "Mauvais" jusqu'au remplacement)
+  const [invalidFiles, setInvalidFiles] = useState({
+    stockGS: false,
+    stockGC: false,
   })
 
   // État pour le chargement bloquant
@@ -43,6 +52,12 @@ function IntuiDCPManager() {
     files.ventes !== null &&
     files.achats !== null &&
     files.inventaire !== null
+
+  const canGenerateInventaire =
+    files.stockGS !== null &&
+    files.stockGC !== null &&
+    !invalidFiles.stockGS &&
+    !invalidFiles.stockGC
 
   const updateFile = (key, file) => {
     setFiles((current) => ({
@@ -208,10 +223,11 @@ function IntuiDCPManager() {
             type: "success",
             title: "Export réussi",
             message: "L'état des ventes DCP a été enregistré avec succès.",
-            details: [
-              { label: "Fichier", value: saved.fileName },
-              { label: "Format", value: saved.format.toUpperCase() }
-            ],
+details: [
+  { label: "État de stock", value: saved.fileName },
+  { label: "Rapport d'anomalies", value: saved.anomalyFileName },
+  { label: "Format", value: saved.format.toUpperCase() }
+],
             onConfirm: null
           })
         }
@@ -512,6 +528,201 @@ function IntuiDCPManager() {
     }
   }
 
+  // ============================================================
+  // RAPPROCHEMENT DES STOCKS GS / GC
+  // Données volatiles : rien n'est enregistré en base de données.
+  // ============================================================
+
+  async function saveInventaireExport() {
+    if (
+      !window.electronAPI ||
+      typeof window.electronAPI.saveRapprochementExport !== "function"
+    ) {
+      throw new Error(
+        "L'API native Electron d'enregistrement de l'inventaire n'est pas disponible. Relancez l'application."
+      )
+    }
+
+    return await window.electronAPI.saveRapprochementExport()
+  }
+
+  const handleAnalyseStockService = async (key, source, file) => {
+    setIsLoading(true)
+    setLoadingText(`Analyse du fichier Stock ${source} en cours...`)
+
+    try {
+      const content = await file.text()
+
+      const response = await fetch(
+        "http://localhost:3001/api/rapprochement/analyse",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ content, source }),
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message ||
+            `Erreur pendant l'analyse du fichier Stock ${source}.`
+        )
+      }
+
+      const detailsList = [
+        { label: "Lignes du fichier", value: result.total },
+        { label: "Articles valides", value: result.valid },
+        { label: "Lignes ignorées", value: result.ignored },
+        { label: "Références distinctes", value: result.references },
+        { label: "Lignes en double (cumulées)", value: result.doublons },
+        { label: "Quantité totale", value: result.quantiteTotale.toLocaleString("fr-FR") }
+      ]
+
+      setDialogConfig({
+        isOpen: true,
+        type: "success",
+        title: `Stock ${source} chargé`,
+        message: `Le fichier Stock ${source} a été analysé avec succès.`,
+        details: detailsList,
+        onConfirm: null
+      })
+    } catch (error) {
+      console.error(`Erreur analyse Stock ${source} :`, error)
+      setInvalidFiles((current) => ({ ...current, [key]: true }))
+      setDialogConfig({
+        isOpen: true,
+        type: "error",
+        title: "Erreur d'importation",
+        message: `Impossible d'importer le fichier Stock ${source}.\n\n${error.message}`,
+        details: [],
+        onConfirm: null
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleFileStockService = (key, source, file) => {
+    setInvalidFiles((current) => ({ ...current, [key]: false }))
+    updateFile(key, file)
+
+    if (file) {
+      handleAnalyseStockService(key, source, file)
+    }
+  }
+
+  const handleGenerateInventaire = async () => {
+    if (!canGenerateInventaire) {
+      setDialogConfig({
+        isOpen: true,
+        type: "error",
+        title: "Prérequis manquants",
+        message: "Veuillez sélectionner les fichiers Stock GS et Stock GC (valides) avant de générer l'inventaire.",
+        details: [],
+        onConfirm: null
+      })
+      return
+    }
+
+    setIsLoading(true)
+    setLoadingText("Rapprochement des stocks GS et GC en cours...")
+
+    try {
+      const [gsContent, gcContent] = await Promise.all([
+        files.stockGS.text(),
+        files.stockGC.text(),
+      ])
+
+      const response = await fetch(
+        "http://localhost:3001/api/rapprochement/generate",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ gsContent, gcContent }),
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message ||
+            "Erreur pendant la génération de l'inventaire."
+        )
+      }
+
+      const detailsList = [
+        { label: "Références rapprochées", value: result.lignes },
+        { label: "Conformes", value: result.conformes },
+        { label: "Avec écart", value: result.ecarts },
+        { label: "Absentes du stock GS", value: result.absentsGS },
+        { label: "Absentes du stock GC", value: result.absentsGC },
+        { label: "Quantité Stock GS", value: result.quantiteGS.toLocaleString("fr-FR") },
+        { label: "Quantité Stock GC", value: result.quantiteGC.toLocaleString("fr-FR") },
+        { label: "Écart total (GS - GC)", value: result.ecartTotal.toLocaleString("fr-FR") }
+      ]
+
+      // Affichage de la 1ère modale de succès avec liaison du clic OK sur l'export
+      setDialogConfig({
+        isOpen: true,
+        type: "success",
+        title: "Inventaire généré",
+        message: "Le rapprochement des stocks s'est terminé avec succès. Cliquez sur OK pour enregistrer le fichier.",
+        details: detailsList,
+        onConfirm: async () => {
+          try {
+            const saved = await saveInventaireExport()
+
+            if (saved?.canceled) {
+              return
+            }
+
+            // Affichage de la modale finale de réussite de l'enregistrement
+            setDialogConfig({
+              isOpen: true,
+              type: "success",
+              title: "Export réussi",
+              message: "L'inventaire a été enregistré avec succès.",
+              details: [
+                { label: "Fichier", value: saved.fileName },
+                { label: "Format", value: saved.format.toUpperCase() }
+              ],
+              onConfirm: null
+            })
+          } catch (exportError) {
+            console.error("Erreur export inventaire :", exportError)
+            setDialogConfig({
+              isOpen: true,
+              type: "error",
+              title: "Erreur d'export",
+              message: `Impossible d'enregistrer l'inventaire.\n\n${exportError.message}`,
+              details: [],
+              onConfirm: null
+            })
+          }
+        }
+      })
+    } catch (error) {
+      console.error("Erreur génération inventaire :", error)
+      setDialogConfig({
+        isOpen: true,
+        type: "error",
+        title: "Erreur de génération",
+        message: `Impossible de générer l'inventaire.\n\n${error.message}`,
+        details: [],
+        onConfirm: null
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <section className="relative flex h-full min-h-0 flex-col bg-slate-50 overflow-y-auto">
       
@@ -668,6 +879,62 @@ function IntuiDCPManager() {
               >
                 <Download className="w-4 h-4" /> Générer l'État de Stock DCP
               </button>
+            </div>
+          </div>
+
+          {/* SECTION : RAPPROCHEMENT DES STOCKS GS / GC */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center px-1">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Rapprochement des stocks
+              </h2>
+              <span className="text-xs text-slate-400">
+                Données temporaires : aucune écriture en base de données
+              </span>
+            </div>
+
+            {/* Même grille que les cartes sources : les 2 cartes occupent les 2 premières colonnes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+
+              <FileUploadCard
+                title="Stock GS"
+                description={files.stockGS ? files.stockGS.name : "Gestion des stocks .txt"}
+                required
+                accept=".txt"
+                file={files.stockGS}
+                isValidFile={!invalidFiles.stockGS}
+                onFileChange={(file) =>
+                  handleFileStockService("stockGS", "GS", file)
+                }
+              />
+
+              <FileUploadCard
+                title="Stock GC"
+                description={files.stockGC ? files.stockGC.name : "Gestion commerciale .txt"}
+                required
+                accept=".txt"
+                file={files.stockGC}
+                isValidFile={!invalidFiles.stockGC}
+                onFileChange={(file) =>
+                  handleFileStockService("stockGC", "GC", file)
+                }
+              />
+
+              {/* Bouton à droite des cartes (sous les cartes sur petits écrans) */}
+              <div className="md:col-span-2 lg:col-span-3 flex items-center lg:pl-2">
+                <button
+                  onClick={handleGenerateInventaire}
+                  disabled={!canGenerateInventaire || isLoading}
+                  className={`px-4 py-2.5 text-white text-xs font-semibold rounded-xl flex items-center gap-2 transition-all shadow-sm ${
+                    canGenerateInventaire && !isLoading
+                      ? "bg-emerald-700 hover:bg-emerald-800 cursor-pointer"
+                      : "bg-slate-300 cursor-not-allowed opacity-70"
+                  }`}
+                >
+                  <Download className="w-4 h-4" /> Générer l'inventaire
+                </button>
+              </div>
+
             </div>
           </div>
 

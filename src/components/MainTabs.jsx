@@ -43,7 +43,7 @@ function MainTabs({
   ]
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white">
+    <div className="flex min-h-0 flex-1 flex-col bg-white dark:bg-neutral-900">
 
       {/* Barre des onglets */}
       <div
@@ -52,6 +52,7 @@ function MainTabs({
           border-b border-slate-200
           bg-white
           px-2
+          dark:border-neutral-800 dark:bg-neutral-900
         "
       >
         {tabs.map((tab) => {
@@ -77,6 +78,9 @@ function MainTabs({
                       font-semibold
                       text-blue-600
                       shadow-xs
+                      dark:border-neutral-800
+                      dark:bg-neutral-900
+                      dark:text-blue-400
                     `
                     : `
                       border-transparent
@@ -84,11 +88,15 @@ function MainTabs({
                       text-slate-500
                       hover:bg-slate-100
                       hover:text-slate-800
+                      dark:bg-neutral-800/40
+                      dark:text-neutral-400
+                      dark:hover:bg-neutral-800
+                      dark:hover:text-neutral-100
                     `
                 }
               `}
             >
-              <Icon className={`h-4 w-4 ${active ? "text-blue-600" : "text-slate-400"}`} />
+              <Icon className={`h-4 w-4 ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-neutral-500"}`} />
 
               <span>{tab.label}</span>
             </button>
@@ -97,7 +105,7 @@ function MainTabs({
       </div>
 
       {/* Contenu de la page active */}
-      <div className="min-h-0 flex-1 bg-white">
+      <div className="min-h-0 flex-1 bg-white dark:bg-neutral-900">
         {activeTab === "accueil" && (
           <ActivityContent onNavigate={onNavigate} />
         )}

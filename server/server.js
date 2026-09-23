@@ -13,9 +13,13 @@ import db from "./database.js"
 import * as XLSX from "xlsx"
 import PDFDocument from "pdfkit"
 
+// Rapprochement des stocks GS / GC (module séparé, données volatiles)
+import { registerRapprochement } from "./rapprochement.js"
+
 // ============================================================
 // STOCKAGE EN MÉMOIRE DES STATS POUR LE DASHBOARD
 // ============================================================
+let dernierRapportAnomaliesDCP = ""
 let globalDashboardStats = {
   valeurConsommation: 0,
   valeurVentes: 0,
@@ -351,7 +355,9 @@ function parseInventaireLine(line) {
     text = text.slice(0, endLetterMatch.index).trim()
   }
 
-  const numberPattern = "-?\\d[\\d\\s]*(?:[.,]\\d+)?"
+    // CORRECTION : Un nombre ne peut pas contenir d'espaces multiples ou de tabulations internes.
+  // On autorise un seul espace optionnel pour les milliers (ex: 2 500) mais pas plus.
+  const numberPattern = "-?\\d+(?:\\s?\\d+)*(?:[.,]\\d+)?";
 
   const finalValuesRegex = new RegExp(
     `^(.*?)[ \\t]+(${numberPattern})[ \\t]+(${numberPattern})[ \\t]+(${numberPattern})$`
@@ -1516,18 +1522,40 @@ app.post("/api/inventaire/import", (req, res) => {
       })
     }
 
+    // 1. Déclaration de la variable de nettoyage (qui manquait)
     const deleteInventaire = db.prepare(`DELETE FROM Inventaire`)
+    
     const insertInventaire = db.prepare(`
       INSERT INTO Inventaire (Reference, Designation, QtesEnStock, PRUnitHT, MtnDRHT)
       VALUES (@reference, @designation, @qtesEnStock, @prUnitHT, @mtnDRHT)
     `)
 
+    // 2. Transaction sécurisée avec cumul multi-entrepôts (Outilux + Hammadi)
     const importInventaire = db.transaction((inventoryArticles) => {
+      // Nettoyage initial de la table de la base de données
       deleteInventaire.run()
-      for (const article of inventoryArticles) insertInventaire.run(article)
+      
+      const aggregatedArticles = new Map()
+
+      for (const article of inventoryArticles) {
+        const refKey = article.reference.trim().toUpperCase()
+        if (aggregatedArticles.has(refKey)) {
+          const existing = aggregatedArticles.get(refKey)
+          existing.qtesEnStock += article.qtesEnStock
+          existing.mtnDRHT += article.mtnDRHT
+        } else {
+          aggregatedArticles.set(refKey, { ...article })
+        }
+      }
+
+      // Insertion finale des données cumulées et propres
+      for (const article of aggregatedArticles.values()) {
+        insertInventaire.run(article)
+      }
     })
 
     importInventaire(articles)
+
 
     const quantiteTotale = articles.reduce((total, a) => total + a.qtesEnStock, 0)
     const valeurTotale = articles.reduce((total, a) => total + a.mtnDRHT, 0)
@@ -2794,7 +2822,61 @@ app.post("/api/stock/generate", (req, res) => {
     globalDashboardStats.ventesLignes = statsVentes.Lignes || 0;
     globalDashboardStats.ventesQte = statsVentes.Qte || 0;
     globalDashboardStats.inventaireLignes = statsInventaire.Lignes || 0;
+const anomalies = generatedRows.filter((row) => {
+  const observation = String(row.observations || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
 
+  if (observation.includes("ecart")) {
+    return true
+  }
+
+return (
+  row.dateImport === "" &&
+  Number(row.qtesImport) === 0 &&
+  Number(row.valeurDRHT) === 0 &&
+  Number(row.qtesVendues) > 0 &&
+  Number(row.resteEnStock) > 0
+)
+})
+
+dernierRapportAnomaliesDCP =
+  "RAPPORT D'ANOMALIES DCP\n" +
+  "========================\n\n"
+
+if (anomalies.length === 0) {
+  dernierRapportAnomaliesDCP += "Aucune anomalie détectée.\n"
+} else {
+  dernierRapportAnomaliesDCP += anomalies
+    .map((row) => {
+      const observation = String(row.observations || "")
+
+      const typeAnomalie = observation
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .includes("ecart")
+        ? "Écart"
+        : "Mouvement sans approvisionnement"
+
+      return [
+        `Référence : ${row.reference || ""}`,
+        `Désignation : ${row.designation || ""}`,
+        `Date import : ${row.dateImport || ""}`,
+        `Qtés importées : ${row.qtesImport ?? ""}`,
+        `Valeur D.R. HT : ${row.valeurDRHT ?? ""}`,
+        `Qtés vendues : ${row.qtesVendues ?? ""}`,
+        `Reste en stock : ${row.resteEnStock ?? ""}`,
+        `Type d'anomalie : ${typeAnomalie}`,
+        `Observation : ${observation}`,
+        "",
+        "------------------------------------------------------------",
+        "",
+      ].join("\n")
+    })
+    .join("\n")
+}
     res.json({
       success: true,
 
@@ -2845,7 +2927,10 @@ app.post("/api/stock/generate", (req, res) => {
 // Formats disponibles :
 // XLSX / TXT / PDF / HTML
 // ============================================================
-
+app.get("/api/export/anomalies", (req, res) => {
+  res.setHeader("Content-Type", "text/plain; charset=utf-8")
+  res.send("\uFEFF" + dernierRapportAnomaliesDCP)
+})
 app.get(
   "/api/export/dcp",
   async (req, res) => {
@@ -3075,6 +3160,16 @@ app.get("/api/dashboard/stats", (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// ============================================================
+// RAPPROCHEMENT DES STOCKS GS / GC
+// Module séparé : ./rapprochement.js (aucune écriture en base)
+// ============================================================
+registerRapprochement(app, {
+  createTxtContent,
+  createHtmlContent,
+  createPdfBuffer,
+})
 
 app.listen(PORT, () => {
   console.log(`Serveur DCP Manager démarré sur http://localhost:${PORT}`)
