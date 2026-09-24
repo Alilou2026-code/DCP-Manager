@@ -223,11 +223,10 @@ function IntuiDCPManager() {
             type: "success",
             title: "Export réussi",
             message: "L'état des ventes DCP a été enregistré avec succès.",
-details: [
-  { label: "État de stock", value: saved.fileName },
-  { label: "Rapport d'anomalies", value: saved.anomalyFileName },
-  { label: "Format", value: saved.format.toUpperCase() }
-],
+            details: [
+              { label: "Fichier", value: saved.fileName },
+              { label: "Format", value: saved.format.toUpperCase() }
+            ],
             onConfirm: null
           })
         }
@@ -724,39 +723,39 @@ details: [
   }
 
   return (
-    <section className="relative flex h-full min-h-0 flex-col bg-slate-50 overflow-y-auto">
+    <section className="relative flex h-full min-h-0 flex-col bg-slate-50 dark:bg-neutral-950 overflow-y-auto">
       
       {/* OVERLAY DE CHARGEMENT BLOQUANT */}
       {isLoading && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white px-6 py-5 rounded-2xl shadow-2xl border border-slate-100 flex items-center gap-4 max-w-sm w-full mx-4">
-            <Loader2 className="w-7 h-7 text-blue-600 animate-spin shrink-0" />
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/50 dark:bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white px-6 py-5 rounded-2xl shadow-2xl border border-slate-100 flex items-center gap-4 max-w-sm w-full mx-4 dark:bg-neutral-900 dark:border-neutral-800">
+            <Loader2 className="w-7 h-7 text-blue-600 dark:text-blue-400 animate-spin shrink-0" />
             <div>
-              <h4 className="text-sm font-bold text-slate-900">Patientez s'il vous plaît</h4>
-              <p className="text-xs text-slate-500 mt-0.5">{loadingText}</p>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-neutral-100">Patientez s'il vous plaît</h4>
+              <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">{loadingText}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* En-tête principal moderne et lumineux */}
-      <div className="shrink-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm m-6 mb-0 rounded-2xl">
+      <div className="shrink-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm m-6 mb-0 rounded-2xl dark:bg-neutral-900 dark:border-neutral-800">
         <div className="flex items-center space-x-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl dark:bg-blue-950/40 dark:text-blue-400">
             <FileSpreadsheet className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">
+            <h1 className="text-lg font-bold text-slate-900 dark:text-neutral-100">
               IntuiDCP Manager
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
               Centre d'intégration des fichiers sources Sage & Génération des états réglementaires
             </p>
           </div>
         </div>
         {/* Badge BDD OK */}
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200 shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200 shadow-sm dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/40">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
           Base de données : OK
         </div>
       </div>
@@ -768,10 +767,10 @@ details: [
           {/* SECTION : FICHIERS SOURCES SAGE */}
           <div className="space-y-3">
             <div className="flex justify-between items-center px-1">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-400">
                 Fichiers sources d'importation Sage
               </h2>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-400 dark:text-neutral-500">
                 Formats acceptés : TXT, CSV (séparateur tabulation ou point-virgule)
               </span>
             </div>
@@ -849,21 +848,21 @@ details: [
           </div>
 
           {/* SECTION : GÉNÉRATION DES ÉTATS RÉGLEMENTAIRES */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 dark:bg-neutral-900 dark:border-neutral-800">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-neutral-100">
                 Génération des états réglementaires DCP
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
                 Les prérequis sont vérifiés au lancement du traitement. Choisissez l'extension dans le dialogue système.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3 pt-3 border-t border-slate-100">
+            <div className="flex flex-wrap gap-3 pt-3 border-t border-slate-100 dark:border-neutral-800">
               <button
                 onClick={handleGenerateVentes}
                 disabled={isLoading}
-                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl flex items-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-white text-xs font-semibold rounded-xl flex items-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-50"
               >
                 <Download className="w-4 h-4" /> Générer l'État de Ventes DCP
               </button>
@@ -874,7 +873,7 @@ details: [
                 className={`px-4 py-2.5 text-white text-xs font-semibold rounded-xl flex items-center gap-2 transition-all shadow-sm ${
                   canGenerateStock && !isLoading
                     ? "bg-emerald-700 hover:bg-emerald-800 cursor-pointer" 
-                    : "bg-slate-300 cursor-not-allowed opacity-70"
+                    : "bg-slate-300 dark:bg-neutral-700 dark:text-neutral-400 cursor-not-allowed opacity-70"
                 }`}
               >
                 <Download className="w-4 h-4" /> Générer l'État de Stock DCP
@@ -885,10 +884,10 @@ details: [
           {/* SECTION : RAPPROCHEMENT DES STOCKS GS / GC */}
           <div className="space-y-3">
             <div className="flex justify-between items-center px-1">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-400">
                 Rapprochement des stocks
               </h2>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-400 dark:text-neutral-500">
                 Données temporaires : aucune écriture en base de données
               </span>
             </div>
@@ -928,7 +927,7 @@ details: [
                   className={`px-4 py-2.5 text-white text-xs font-semibold rounded-xl flex items-center gap-2 transition-all shadow-sm ${
                     canGenerateInventaire && !isLoading
                       ? "bg-emerald-700 hover:bg-emerald-800 cursor-pointer"
-                      : "bg-slate-300 cursor-not-allowed opacity-70"
+                      : "bg-slate-300 dark:bg-neutral-700 dark:text-neutral-400 cursor-not-allowed opacity-70"
                   }`}
                 >
                   <Download className="w-4 h-4" /> Générer l'inventaire

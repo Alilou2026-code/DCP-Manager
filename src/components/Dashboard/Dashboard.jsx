@@ -53,28 +53,28 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return <div className="w-full h-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-500">Chargement des données réelles...</div>
+    return <div className="w-full h-full bg-slate-100 dark:bg-neutral-950 flex items-center justify-center text-xs font-semibold text-slate-500 dark:text-neutral-400">Chargement des données réelles...</div>
   }
 
   return (
-    <div className="w-full min-h-[600px] bg-slate-100 p-6 overflow-y-auto space-y-6">
+    <div className="w-full min-h-[600px] bg-slate-100 dark:bg-neutral-950 p-6 overflow-y-auto space-y-6">
       
       {/* En-tête du Tableau de bord */}
-      <div className="bg-white border border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm rounded-2xl">
+      <div className="bg-white border border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm rounded-2xl dark:bg-neutral-900 dark:border-neutral-800">
         <div className="flex items-center space-x-4">
           <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
             <BarChart3 className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">
+            <h1 className="text-lg font-bold text-slate-900 dark:text-neutral-100">
               Tableau de bord & Statistiques
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
               Vue consolidée des flux, des stocks et de la volumétrie Sage
             </p>
           </div>
         </div>
-        <div className="text-xs text-slate-400 font-medium">
+        <div className="text-xs text-slate-400 dark:text-neutral-500 font-medium">
           Dernière mise à jour : {new Date().toLocaleDateString("fr-FR")}
         </div>
       </div>
@@ -83,14 +83,14 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         
         {/* Carte 1 : Valeur Achats */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Achats HT</span>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2 dark:bg-neutral-900 dark:border-neutral-800">
+          <div className="flex items-center justify-between text-slate-500 dark:text-neutral-400">
+            <span className="text-xs font-bold uppercase tracking-wider dark:text-neutral-400">Achats HT</span>
             <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-lg font-bold text-slate-900">
+          <div className="text-lg font-bold text-slate-900 dark:text-neutral-100">
             {currentStats.valeurAchats.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DA
           </div>
           <div className="flex items-center gap-1 text-xs text-blue-600 font-semibold">
@@ -99,14 +99,14 @@ export default function Dashboard() {
         </div>
 
         {/* Carte 2 : Valeur Ventes (NOUVEAU) */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Ventes HT</span>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2 dark:bg-neutral-900 dark:border-neutral-800">
+          <div className="flex items-center justify-between text-slate-500 dark:text-neutral-400">
+            <span className="text-xs font-bold uppercase tracking-wider dark:text-neutral-400">Ventes HT</span>
             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <ShoppingCart className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-lg font-bold text-slate-900">
+          <div className="text-lg font-bold text-slate-900 dark:text-neutral-100">
             {currentStats.valeurVentes.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DA
           </div>
           <div className="flex items-center gap-1 text-xs text-emerald-600 font-semibold">
@@ -115,42 +115,42 @@ export default function Dashboard() {
         </div>
 
         {/* Carte 3 : Quantité Stock */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Volume Stock</span>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2 dark:bg-neutral-900 dark:border-neutral-800">
+          <div className="flex items-center justify-between text-slate-500 dark:text-neutral-400">
+            <span className="text-xs font-bold uppercase tracking-wider dark:text-neutral-400">Volume Stock</span>
             <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
               <Package className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-lg font-bold text-slate-900">
+          <div className="text-lg font-bold text-slate-900 dark:text-neutral-100">
             {currentStats.volumeStock.toLocaleString("fr-FR")} unités
           </div>
-          <p className="text-xs text-slate-400">Inventaire actuel</p>
+          <p className="text-xs text-slate-400 dark:text-neutral-500">Inventaire actuel</p>
         </div>
 
         {/* Carte 4 : Clients */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Clients</span>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2 dark:bg-neutral-900 dark:border-neutral-800">
+          <div className="flex items-center justify-between text-slate-500 dark:text-neutral-400">
+            <span className="text-xs font-bold uppercase tracking-wider dark:text-neutral-400">Clients</span>
             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-lg font-bold text-slate-900">
+          <div className="text-lg font-bold text-slate-900 dark:text-neutral-100">
             {currentStats.totalClients} actifs
           </div>
-          <p className="text-xs text-slate-400">Répertoire Sage</p>
+          <p className="text-xs text-slate-400 dark:text-neutral-500">Répertoire Sage</p>
         </div>
 
         {/* Carte 5 : Écarts */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Écarts</span>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2 dark:bg-neutral-900 dark:border-neutral-800">
+          <div className="flex items-center justify-between text-slate-500 dark:text-neutral-400">
+            <span className="text-xs font-bold uppercase tracking-wider dark:text-neutral-400">Écarts</span>
             <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
               <AlertTriangle className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-lg font-bold text-slate-900">
+          <div className="text-lg font-bold text-slate-900 dark:text-neutral-100">
             {currentStats.referencesAvecEcart} réf.
           </div>
           <p className="text-xs text-amber-600 font-medium">À vérifier</p>
@@ -162,25 +162,25 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Synthèse des flux réglementaires avec Ventes intégrées */}
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 dark:bg-neutral-900 dark:border-neutral-800">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-900">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-neutral-100">
               Synthèse des flux & Chiffres Clés DCP
             </h2>
-            <span className="text-xs text-slate-400">Période active</span>
+            <span className="text-xs text-slate-400 dark:text-neutral-500">Période active</span>
           </div>
 
-          <div className="border border-slate-100 rounded-xl overflow-hidden">
+          <div className="border border-slate-100 rounded-xl overflow-hidden dark:border-neutral-800">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                <tr className="bg-slate-50 text-slate-500 border-b border-slate-100 dark:bg-neutral-800/60 dark:text-neutral-400 dark:border-neutral-800">
                   <th className="p-3 font-semibold">Indicateur / Source</th>
                   <th className="p-3 font-semibold">Lignes</th>
                   <th className="p-3 font-semibold">Quantité</th>
                   <th className="p-3 font-semibold text-right">Valeur Globale (DA)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
+              <tbody className="divide-y divide-slate-100 text-slate-700 dark:divide-neutral-800 dark:text-neutral-300">
                 <tr>
                   <td className="p-3 font-medium flex items-center gap-2">
                     <FileSpreadsheet className="w-4 h-4 text-blue-600" /> État des Achats Sage
@@ -190,7 +190,7 @@ export default function Dashboard() {
                   <td className="p-3 text-right font-semibold">{currentStats.valeurAchats.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DA</td>
                 </tr>
                 {/* Ligne Ventes ajoutée dans le tableau */}
-                <tr className="bg-emerald-50/30">
+                <tr className="bg-emerald-50/30 dark:bg-emerald-950/20">
                   <td className="p-3 font-medium flex items-center gap-2">
                     <ShoppingCart className="w-4 h-4 text-emerald-600" /> État des Ventes Globales
                   </td>
@@ -212,79 +212,79 @@ export default function Dashboard() {
         </div>
 
         {/* Bloc GRAPHIQUE VISUEL DES FLUX */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 dark:bg-neutral-900 dark:border-neutral-800">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 dark:text-neutral-100">
             <BarChart3 className="w-4 h-4 text-indigo-600" /> Répartition des Valeurs
           </h2>
           
           <div className="space-y-3 pt-2">
             <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-600">Ventes HT</span>
+              <div className="flex justify-between text-xs font-semibold mb-1 dark:text-neutral-300">
+                <span className="text-slate-600 dark:text-neutral-300">Ventes HT</span>
                 <span className="text-emerald-600">{(currentStats.valeurVentes / 1000000).toFixed(1)}M DA</span>
               </div>
-              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden dark:bg-neutral-800">
                 <div className="bg-emerald-500 h-full rounded-full" style={{ width: "85%" }}></div>
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-600">Achats HT</span>
+              <div className="flex justify-between text-xs font-semibold mb-1 dark:text-neutral-300">
+                <span className="text-slate-600 dark:text-neutral-300">Achats HT</span>
                 <span className="text-blue-600">{(currentStats.valeurAchats / 1000000).toFixed(1)}M DA</span>
               </div>
-              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden dark:bg-neutral-800">
                 <div className="bg-blue-500 h-full rounded-full" style={{ width: "70%" }}></div>
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-600">Valeur Stock</span>
+              <div className="flex justify-between text-xs font-semibold mb-1 dark:text-neutral-300">
+                <span className="text-slate-600 dark:text-neutral-300">Valeur Stock</span>
                 <span className="text-purple-600">{(currentStats.valeurStock ? (currentStats.valeurStock / 1000000).toFixed(1) : "0.0")}M DA</span>
               </div>
-              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden dark:bg-neutral-800">
                 <div className="bg-purple-500 h-full rounded-full" style={{ width: currentStats.valeurStock > 0 ? "45%" : "0%" }}></div>
               </div>
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-400">
+          <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-400 dark:border-neutral-800 dark:text-neutral-500">
             * Indicateurs calculés automatiquement depuis les bases Sage et SQLite.
           </div>        
         </div>
 
         {/* NOUVEAUX INDICATEURS EN LIGNE AVEC ICÔNES */}
-        <div className="lg:col-span-3 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-3 gap-4">
+        <div className="lg:col-span-3 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-3 gap-4 dark:bg-neutral-900 dark:border-neutral-800">
           {/* Consommation */}
-          <div className="px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
+          <div className="px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between dark:bg-neutral-800/60 dark:border-neutral-800">
             <div className="flex items-center gap-2.5">
-              <div className="p-1.5 bg-slate-200/60 text-slate-600 rounded-lg">
+              <div className="p-1.5 bg-slate-200/60 text-slate-600 rounded-lg dark:bg-neutral-700/60 dark:text-neutral-300">
                 <Package className="w-3.5 h-3.5" />
               </div>
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Consommation</span>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider dark:text-neutral-400">Consommation</span>
             </div>
-            <span className="text-xs font-bold text-slate-900">{currentStats.valeurConsommation.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DA</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-neutral-100">{currentStats.valeurConsommation.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DA</span>
           </div>
 
           {/* Bénéfice brut */}
-          <div className="px-4 py-2.5 bg-emerald-50/30 border border-emerald-100/50 rounded-xl flex items-center justify-between">
+          <div className="px-4 py-2.5 bg-emerald-50/30 border border-emerald-100/50 rounded-xl flex items-center justify-between dark:bg-emerald-950/20 dark:border-emerald-900/40">
             <div className="flex items-center gap-2.5">
               <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg">
                 <TrendingUp className="w-3.5 h-3.5" />
               </div>
-              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Bénéfice Brut</span>
+              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider dark:text-neutral-300">Bénéfice Brut</span>
             </div>
             <span className="text-xs font-bold text-emerald-700">{(currentStats.valeurVentes - currentStats.valeurConsommation).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DA</span>
           </div>
 
           {/* Marge Moyenne */}
-          <div className="px-4 py-2.5 bg-indigo-50/40 border border-indigo-100/50 rounded-xl flex items-center justify-between">
+          <div className="px-4 py-2.5 bg-indigo-50/40 border border-indigo-100/50 rounded-xl flex items-center justify-between dark:bg-indigo-950/20 dark:border-indigo-900/40">
             <div className="flex items-center gap-2.5">
               <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </div>
-              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Marge Moyenne</span>
+              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider dark:text-neutral-300">Marge Moyenne</span>
             </div>
             <span className="text-xs font-bold text-indigo-700">{(currentStats.valeurVentes > 0 ? ((currentStats.valeurVentes - currentStats.valeurConsommation) / currentStats.valeurVentes) * 100 : 0).toFixed(2)} %</span>
           </div>

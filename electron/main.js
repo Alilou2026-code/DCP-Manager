@@ -2,7 +2,7 @@
 // DCP MANAGER — PROCESSUS PRINCIPAL ELECTRON
 // ============================================================
 
-import { app, BrowserWindow, dialog, ipcMain } from "electron"
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme } from "electron"
 import fs from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -134,37 +134,13 @@ async function handleSaveDcp(_event, type) {
   const buffer = Buffer.from(arrayBuffer)
 
   await fs.writeFile(filePath, buffer)
-let anomalyFilePath = null
 
-if (type === "stock") {
-  const anomalyResponse = await fetch(
-    `${DCP_SERVER_URL}/api/export/anomalies`
-  )
-
-  if (!anomalyResponse.ok) {
-    throw new Error(
-      "L'État de stock a été enregistré, mais le rapport d'anomalies n'a pas pu être récupéré."
-    )
+  return {
+    canceled: false,
+    filePath,
+    fileName: path.basename(filePath),
+    format: format.toUpperCase(),
   }
-
-  const anomalyText = await anomalyResponse.text()
-
-  anomalyFilePath = path.join(
-    path.dirname(filePath),
-    "Rapport_anomalies_DCP.txt"
-  )
-
-  await fs.writeFile(anomalyFilePath, anomalyText, "utf8")
-}
-return {
-  canceled: false,
-  filePath,
-  fileName: path.basename(filePath),
-  format: format.toUpperCase(),
-  anomalyFileName: anomalyFilePath
-    ? path.basename(anomalyFilePath)
-    : null,
-}
 }
 
 // ============================================================
@@ -244,6 +220,11 @@ async function handleSaveRapprochement() {
 app.whenReady().then(() => {
   ipcMain.handle("dcp:save-export", handleSaveDcp)
   ipcMain.handle("dcp:save-rapprochement", handleSaveRapprochement)
+  ipcMain.handle("dcp:set-native-theme", (_event, theme) => {
+    if (theme === "light" || theme === "dark" || theme === "system") {
+      nativeTheme.themeSource = theme
+    }
+  })
   createWindow()
 
   app.on("activate", () => {

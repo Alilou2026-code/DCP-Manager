@@ -12,5 +12,6 @@ import { contextBridge, ipcRenderer } from "electron"
 contextBridge.exposeInMainWorld("electronAPI", {
   saveDcpExport: (type) => ipcRenderer.invoke("dcp:save-export", type),
   saveRapprochementExport: () => ipcRenderer.invoke("dcp:save-rapprochement"),
+  setNativeTheme: (theme) => ipcRenderer.invoke("dcp:set-native-theme", theme),
   isElectron: true,
 })
