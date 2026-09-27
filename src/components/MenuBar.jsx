@@ -11,30 +11,30 @@ import {
 
 const menus = {
   Fichier: [
-    { label: "Nouveau traitement", icon: FilePlus2 },
-    { label: "Ouvrir un traitement", icon: FolderOpen },
-    { label: "Fermer", icon: X },
+    { label: "Nouveau traitement", icon: FilePlus2, disabled: true },
+    { label: "Ouvrir un traitement", icon: FolderOpen, disabled: true },
+    { label: "Fermer", icon: X, action: "quit" },
   ],
 
   Traitements: [
-    { label: "IntuiDCP Manager" },
-    { label: "État de ventes DCP" },
-    { label: "État de stock DCP" },
+    { label: "IntuiDCP Manager", action: "intui" },
+    { label: "État de ventes DCP", action: "intui" },
+    { label: "État de stock DCP", action: "intui" },
   ],
 
   Paramètres: [
-    { label: "Base de données", icon: Settings },
-    { label: "Utilisateurs" },
-    { label: "Préférences" },
+    { label: "Base de données", icon: Settings, disabled: true },
+    { label: "Utilisateurs", disabled: true },
+    { label: "Préférences", action: "parametres" },
   ],
 
   Aide: [
-    { label: "Aide DCP Manager", icon: HelpCircle },
-    { label: "À propos de DCP Manager", icon: Info },
+    { label: "Aide DCP Manager", icon: HelpCircle, disabled: true },
+    { label: "À propos de DCP Manager", icon: Info, disabled: true },
   ],
 }
 
-function MenuBar() {
+function MenuBar({ onNavigate }) {
   const [openMenu, setOpenMenu] = useState(null)
 
   const toggleMenu = (menu) => {
@@ -101,16 +101,26 @@ function MenuBar() {
                     <button
                       key={item.label}
                       type="button"
-                      onClick={() => setOpenMenu(null)}
-                      className="
+                      disabled={item.disabled}
+                      onClick={() => {
+                        setOpenMenu(null)
+
+                        if (item.action === "quit") {
+                          window.close()
+                        } else if (item.action && onNavigate) {
+                          onNavigate(item.action)
+                        }
+                      }}
+                      className={`
                         flex w-full items-center gap-3
                         px-3 py-2 text-left text-[13px]
-                        text-slate-600
-                        transition-colors cursor-pointer
-                        hover:bg-blue-50
-                        hover:text-blue-600
-                        dark:text-neutral-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-400
-                      "
+                        transition-colors
+                        ${
+                          item.disabled
+                            ? "cursor-not-allowed text-slate-300 dark:text-neutral-600"
+                            : "cursor-pointer text-slate-600 hover:bg-blue-50 hover:text-blue-600 dark:text-neutral-300 dark:hover:bg-blue-950/40 dark:hover:text-blue-400"
+                        }
+                      `}
                     >
                       <span className="flex w-5 justify-center">
                         {Icon && (
@@ -118,7 +128,13 @@ function MenuBar() {
                         )}
                       </span>
 
-                      <span className="font-medium">{item.label}</span>
+                      <span className="font-medium flex-1">{item.label}</span>
+
+                      {item.disabled && (
+                        <span className="text-[9px] uppercase tracking-wide text-slate-300 dark:text-neutral-600">
+                          Bientôt
+                        </span>
+                      )}
                     </button>
                   )
                 })}

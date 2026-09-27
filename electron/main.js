@@ -73,7 +73,9 @@ async function handleSaveDcp(_event, type) {
   }
 
   const suggestedName =
-    type === "ventes" ? "Etat_ventes_DCP.xlsx" : "Etat_stock_DCP.xlsx"
+    type === "ventes"
+      ? "Etat_ventes_DCP.xlsx"
+      : "Etat_stock_DCP.xlsx"
 
   const filters = [
     { name: "Classeur Excel (*.xlsx)", extensions: ["xlsx"] },
@@ -98,20 +100,37 @@ async function handleSaveDcp(_event, type) {
 
   let filePath = result.filePath
 
-  // Extraction de l'extension si tapée directement par l'utilisateur
-  let ext = path.extname(filePath).replace(".", "").toLowerCase()
+  // ----------------------------------------------------------
+  // Détermination de l'extension
+  // ----------------------------------------------------------
 
-  // Si l'utilisateur n'a pas saisi d'extension, déduction d'après le filtre sélectionné
+  let ext = path
+    .extname(filePath)
+    .replace(".", "")
+    .toLowerCase()
+
   if (!ext) {
     const filterIndex = Number.isInteger(result.filterIndex)
       ? result.filterIndex
       : 0
-    const formats = ["xlsx", "txt", "pdf", "html"]
+
+    const formats = [
+      "xlsx",
+      "txt",
+      "pdf",
+      "html",
+    ]
+
     ext = formats[filterIndex] || "xlsx"
+
     filePath = `${filePath}.${ext}`
   }
 
   const format = ext
+
+  // ----------------------------------------------------------
+  // Génération de l'État DCP
+  // ----------------------------------------------------------
 
   const response = await fetch(
     `${DCP_SERVER_URL}/api/export/dcp?type=${encodeURIComponent(
@@ -120,29 +139,115 @@ async function handleSaveDcp(_event, type) {
   )
 
   if (!response.ok) {
-    let message = "Erreur pendant la génération du fichier."
+    let message =
+      "Erreur pendant la génération du fichier."
+
     try {
       const data = await response.json()
-      if (data?.message) message = data.message
+
+      if (data?.message) {
+        message = data.message
+      }
     } catch {
       // Ignorer l'erreur d'analyse JSON
     }
+
     throw new Error(message)
   }
 
-  const arrayBuffer = await response.arrayBuffer()
-  const buffer = Buffer.from(arrayBuffer)
+  const arrayBuffer =
+    await response.arrayBuffer()
 
-  await fs.writeFile(filePath, buffer)
+  const buffer =
+    Buffer.from(arrayBuffer)
+
+  // ----------------------------------------------------------
+  // ENREGISTREMENT DE L'ÉTAT DCP
+  // ----------------------------------------------------------
+
+  await fs.writeFile(
+    filePath,
+    buffer
+  )
+
+  // ==========================================================
+  // RAPPORT D'ANOMALIES — ÉTAT DE STOCK UNIQUEMENT
+  // ==========================================================
+
+  let anomalyFilePath = null
+
+  if (type === "stock") {
+    const anomalyResponse =
+      await fetch(
+        `${DCP_SERVER_URL}/api/export/anomalies`
+      )
+
+    if (!anomalyResponse.ok) {
+      let message =
+        "L'État de stock a été enregistré, mais le rapport d'anomalie n'a pas pu être récupéré."
+
+      try {
+        const data =
+          await anomalyResponse.json()
+
+        if (data?.message) {
+          message = data.message
+        }
+      } catch {
+        // Ignorer l'erreur d'analyse
+      }
+
+      throw new Error(message)
+    }
+
+    const anomalyArrayBuffer =
+      await anomalyResponse.arrayBuffer()
+
+    const anomalyBuffer =
+      Buffer.from(anomalyArrayBuffer)
+
+    // --------------------------------------------------------
+    // Même dossier que l'État de stock
+    // --------------------------------------------------------
+
+    const selectedDirectory =
+      path.dirname(filePath)
+
+    anomalyFilePath =
+      path.join(
+        selectedDirectory,
+        "Rapport d'anomalie.txt"
+      )
+
+    await fs.writeFile(
+      anomalyFilePath,
+      anomalyBuffer
+    )
+  }
+
+  // ----------------------------------------------------------
+  // Réponse au frontend
+  // ----------------------------------------------------------
 
   return {
     canceled: false,
+
     filePath,
-    fileName: path.basename(filePath),
-    format: format.toUpperCase(),
+
+    fileName:
+      path.basename(filePath),
+
+    format:
+      format.toUpperCase(),
+
+    anomalyFilePath,
+
+    anomalyFileName:
+      anomalyFilePath
+        ? path.basename(anomalyFilePath)
+        : null,
   }
 }
-
 // ============================================================
 // EXPORT DE L'INVENTAIRE (RAPPROCHEMENT DES STOCKS GS / GC)
 // ============================================================

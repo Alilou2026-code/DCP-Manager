@@ -16,7 +16,7 @@ function MainPage() {
     <div className="flex h-screen min-h-0 flex-col overflow-hidden bg-white text-[#30373b] dark:bg-neutral-950 dark:text-neutral-100">
 
       {/* Barre de menus */}
-      <MenuBar />
+      <MenuBar onNavigate={setActiveTab} />
 
       {/* Barre de titre */}
       <TitleBar />
