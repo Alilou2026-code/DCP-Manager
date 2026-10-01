@@ -128,3 +128,42 @@
     @apply font-sans;
     }
 }
+
+/* ============================================================
+   BARRE DE DÉFILEMENT — suit le thème clair / sombre
+   ============================================================ */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+.dark * {
+  scrollbar-color: #525252 transparent;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background-color: #525252;
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background-color: #737373;
+}

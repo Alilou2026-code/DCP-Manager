@@ -2,6 +2,7 @@ import IntuiDCPManager from "@/components/IntuiDCPManager/IntuiDCPManager"
 import Dashboard from "@/components/Dashboard/Dashboard"
 import ActivityPanel from "@/components/Dashboard/ActivityPanel"
 import Parametres from "@/pages/Parametres"
+import Aide from "@/pages/Aide"
 import {
   Home,
   FileText,
@@ -22,6 +23,10 @@ function DashboardContent() {
 
 function ParametresContent() {
   return <Parametres />
+}
+
+function AideContent() {
+  return <Aide />
 }
 
 function MainTabs({
@@ -110,7 +115,7 @@ function MainTabs({
       </div>
 
       {/* Contenu de la page active */}
-      <div className="min-h-0 flex-1 bg-white dark:bg-neutral-900">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-white dark:bg-neutral-900">
         {activeTab === "accueil" && (
           <ActivityContent onNavigate={onNavigate} />
         )}
@@ -125,6 +130,10 @@ function MainTabs({
 
         {activeTab === "parametres" && (
           <ParametresContent />
+        )}
+
+        {activeTab === "aide" && (
+          <AideContent />
         )}
       </div>
 
